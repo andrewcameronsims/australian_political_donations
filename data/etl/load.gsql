@@ -1,0 +1,48 @@
+DROP ALL
+
+CREATE VERTEX donor (
+  PRIMARY_ID donor_name STRING,
+  name STRING,
+  category STRING
+)
+
+CREATE VERTEX recipient (
+  PRIMARY_ID recipient_name STRING,
+  party_name STRING,
+  party_group STRING
+)
+
+CREATE UNDIRECTED EDGE donation (
+  FROM donor,
+  TO recipient,
+  monetary_value INT,
+  financial_year DATETIME,
+  receipt_type STRING,
+  aec_id STRING
+)
+
+CREATE GRAPH australian_political_donations (donor, recipient, donation)
+USE GRAPH australian_political_donations
+
+CREATE LOADING JOB load_australian_political_donations FOR GRAPH australian_political_donations {
+  DEFINE FILENAME donors_file="donors.csv";
+  DEFINE FILENAME recipients_file="recipients.csv";
+  DEFINE FILENAME donations_file="donations.csv";
+
+  LOAD donors_file TO VERTEX donor VALUES ($"name", $"name", $"category") USING header="true", separator=",";
+  LOAD recipients_file TO VERTEX recipient VALUES ($"party_name", $"party_name", $"party_group") USING header="true", separator=",";
+  LOAD donations_file TO EDGE donation VALUES ($0, $1, $2, $3, $4, $5) USING header="true", separator=",", vertex_must_exist="true";
+}
+
+// RUN LOADING JOB load_australian_political_donations
+
+// all_donors
+// This query shows all donors for a particular political party
+// CREATE QUERY all_donors(VERTEX<recipient> r) {
+//   Start = {r};
+//   Result = SELECT tgt
+//            FROM Start:s - (donation:e) -> donor:tgt;
+//   PRINT Result;
+// }
+
+// INSTALL QUERY all_donors
